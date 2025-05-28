@@ -47,7 +47,9 @@ export default function Home() {
       ) : error ? (
         <p>Ошибка: {error.message}</p>
       ) : osmoBalance ? (
-        <h2 style={{ fontSize: "24px", color: "#1a73e8" }}>{osmoBalance} OSMO</h2>
+        <h2 style={{ fontSize: "24px", color: "#1a73e8" }}>
+          {osmoBalance} OSMO
+        </h2>
       ) : (
         <p>Баланс не найден</p>
       )}
@@ -74,7 +76,7 @@ export default function Home() {
             <p>
               <strong>Amount:</strong>{" "}
               {tx.tx.body.messages[0]?.amount?.map((a) =>
-                ${parseFloat(a.amount) / 1_000_000} ${a.denom.replace("u", "")}
+                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${a.denom.replace("u", "")}`
               ).join(", ")}
             </p>
           </div>
