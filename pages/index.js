@@ -1,27 +1,41 @@
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [balances, setBalances] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [loadingBalances, setLoadingBalances] = useState(true);
+  const [loadingTxs, setLoadingTxs] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("/api")
       .then((res) => res.json())
       .then((data) => {
-        setData(data);
-        setLoading(false);
+        setBalances(data);
+        setLoadingBalances(false);
       })
       .catch((err) => {
         setError(err);
-        setLoading(false);
+        setLoadingBalances(false);
+      });
+
+    fetch("/api/transactions")
+      .then((res) => res.json())
+      .then((data) => {
+        setTransactions(data.tx_responses || []);
+        setLoadingTxs(false);
+      })
+      .catch((err) => {
+        setError(err);
+        setLoadingTxs(false);
       });
   }, []);
 
-  if (loading) return <p>Загрузка...</p>;
+  if (loadingBalances || loadingTxs) return <p>Загрузка...</p>;
   if (error) return <p>Ошибка: {error.message}</p>;
-// Найдём баланс именно токена uosmo (1 OSMO = 1_000_000 uosmo)
-  const osmoBalanceRaw = data?.balances?.balances?.find(
+
+  // Получим баланс токена uosmo
+  const osmoBalanceRaw = balances?.balances?.balances?.find(
     (b) => b.denom === "uosmo"
   )?.amount;
 
@@ -30,52 +44,47 @@ export default function Home() {
     : "Нет данных";
 
   return (
-    <div>
+    <div style={{ padding: "2rem", fontFamily: "Arial" }}>
       <h1>💰 Баланс OSMO</h1>
       <p>{osmoBalance} OSMO</p>
 
-      <h2>🛠 Отладка</h2>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
-  );
-}
-import { useEffect, useState } from "react";
+      <h2>📥 Входящие транзакции</h2>
+      {transactions.length === 0 ? (
+        <p>Нет транзакций</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {transactions.map((tx) => (
+            <li
+              key={tx.txhash}
+              style={{
+                border: "1px solid #ccc",
+                marginBottom: "1rem",
+                padding: "1rem",
+                borderRadius: "8px",
+              }}
+            >
+              <strong>Hash:</strong> {tx.txhash}
+              <br />
+              <strong>Height:</strong> {tx.height}
+              <br />
+              <strong>Time:</strong> {tx.timestamp}
+              <br />
+              <strong>From:</strong>{" "}
+              {tx.tx.body.messages[0]?.from_address}
+              <br />
+              <strong>Amount:</strong>{" "}
+              {tx.tx.body.messages[0]?.amount?.map((a) => `${
+                parseFloat(a.amount) / 1_000_000
+              } ${a.denom}`).join(", ") || "-"}
+            </li>
+          ))}
+        </ul>
+      )}
 
-export default function Home() {
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/transactions")
-      .then((res) => res.json())
-      .then((data) => {
-        setTransactions(data.tx_responses || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Ошибка при загрузке транзакций:", err);
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) return <p>Загрузка транзакций...</p>;
-
-  return (
-    <div>
-      <h1>📥 Входящие транзакции</h1>
-      <ul>
-        {transactions.map((tx) => (
-          <li key={tx.txhash}>
-            <strong>Hash:</strong> {tx.txhash}<br />
-            <strong>Height:</strong> {tx.height}<br />
-            <strong>Time:</strong> {tx.timestamp}<br />
-            <strong>From:</strong>{" "}
-            {tx.tx.body.messages[0]?.from_address}<br />
-            <strong>Amount:</strong>{" "}
-            {tx.tx.body.messages[0]?.amount?.map(a => `${a.amount} ${a.denom}`).join(", ")}
-          </li>
-        ))}
-      </ul>
+      <h2>🛠 Отладка (баланс)</h2>
+      <pre style={{ background: "#f4f4f4", padding: "1rem" }}>
+        {JSON.stringify(balances, null, 2)}
+      </pre>
     </div>
   );
 }
