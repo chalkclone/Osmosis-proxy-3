@@ -40,19 +40,21 @@ export default function Home() {
     : null;
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", padding: "20px" }}>
-      <h1>💰 Баланс OSMO</h1>
-      {loading ? (
-        <p>Загрузка баланса...</p>
-      ) : error ? (
-        <p>Ошибка: {error.message}</p>
-      ) : osmoBalance ? (
-        <h2 style={{ fontSize: "24px", color: "#1a73e8" }}>
-          {osmoBalance} OSMO
-        </h2>
-      ) : (
-        <p>Баланс не найден</p>
-      )}
+    <div style={{ fontFamily: "Arial, sans-serif", padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: "30px" }}>
+        <h1 style={{ fontSize: "32px" }}>💰 Баланс OSMO</h1>
+        {loading ? (
+          <p>Загрузка баланса...</p>
+        ) : error ? (
+          <p>Ошибка: {error.message}</p>
+        ) : osmoBalance ? (
+          <div style={{ fontSize: "36px", fontWeight: "bold", color: "#4CAF50" }}>
+            {osmoBalance} OSMO
+          </div>
+        ) : (
+          <p>Баланс не найден</p>
+        )}
+      </div>
 
       <h2 style={{ marginTop: "40px" }}>📥 Входящие транзакции</h2>
       {txLoading ? (
@@ -64,8 +66,9 @@ export default function Home() {
             style={{
               border: "1px solid #ddd",
               borderRadius: "12px",
-              padding: "12px",
-              marginBottom: "10px",
+              padding: "16px",
+              marginBottom: "15px",
+              backgroundColor: "#f9f9f9",
               boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
             }}
           >
@@ -82,9 +85,7 @@ export default function Home() {
           </div>
         ))
       )}
-
-      <h3 style={{ marginTop: "40px" }}>🛠 Отладка (баланс)</h3>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
     </div>
   );
 }
+
