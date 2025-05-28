@@ -1,90 +1,89 @@
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [balances, setBalances] = useState(null);
+  const [data, setData] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [loadingBalances, setLoadingBalances] = useState(true);
-  const [loadingTxs, setLoadingTxs] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [txLoading, setTxLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("/api")
       .then((res) => res.json())
       .then((data) => {
-        setBalances(data);
-        setLoadingBalances(false);
+        setData(data);
+        setLoading(false);
       })
       .catch((err) => {
         setError(err);
-        setLoadingBalances(false);
+        setLoading(false);
       });
 
     fetch("/api/transactions")
       .then((res) => res.json())
       .then((data) => {
         setTransactions(data.tx_responses || []);
-        setLoadingTxs(false);
+        setTxLoading(false);
       })
       .catch((err) => {
-        setError(err);
-        setLoadingTxs(false);
+        console.error("Ошибка при загрузке транзакций:", err);
+        setTxLoading(false);
       });
   }, []);
 
-  if (loadingBalances || loadingTxs) return <p>Загрузка...</p>;
-  if (error) return <p>Ошибка: {error.message}</p>;
-
-  // Получим баланс токена uosmo
-  const osmoBalanceRaw = balances?.balances?.balances?.find(
+  const osmoBalanceRaw = data?.balances?.balances?.find(
     (b) => b.denom === "uosmo"
   )?.amount;
 
   const osmoBalance = osmoBalanceRaw
     ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6)
-    : "Нет данных";
+    : null;
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial" }}>
+    <div style={{ fontFamily: "Arial, sans-serif", padding: "20px" }}>
       <h1>💰 Баланс OSMO</h1>
-      <p>{osmoBalance} OSMO</p>
-
-      <h2>📥 Входящие транзакции</h2>
-      {transactions.length === 0 ? (
-        <p>Нет транзакций</p>
+      {loading ? (
+        <p>Загрузка баланса...</p>
+      ) : error ? (
+        <p>Ошибка: {error.message}</p>
+      ) : osmoBalance ? (
+        <h2 style={{ fontSize: "24px", color: "#1a73e8" }}>{osmoBalance} OSMO</h2>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {transactions.map((tx) => (
-            <li
-              key={tx.txhash}
-              style={{
-                border: "1px solid #ccc",
-                marginBottom: "1rem",
-                padding: "1rem",
-                borderRadius: "8px",
-              }}
-            >
-              <strong>Hash:</strong> {tx.txhash}
-              <br />
-              <strong>Height:</strong> {tx.height}
-              <br />
-              <strong>Time:</strong> {tx.timestamp}
-              <br />
-              <strong>From:</strong>{" "}
-              {tx.tx.body.messages[0]?.from_address}
-              <br />
-              <strong>Amount:</strong>{" "}
-              {tx.tx.body.messages[0]?.amount?.map((a) => `${
-                parseFloat(a.amount) / 1_000_000
-              } ${a.denom}`).join(", ") || "-"}
-            </li>
-          ))}
-        </ul>
+        <p>Баланс не найден</p>
       )}
 
-      <h2>🛠 Отладка (баланс)</h2>
-      <pre style={{ background: "#f4f4f4", padding: "1rem" }}>
-        {JSON.stringify(balances, null, 2)}
-      </pre>
+      <h2 style={{ marginTop: "40px" }}>📥 Входящие транзакции</h2>
+      {txLoading ? (
+        <p>Загрузка транзакций...</p>
+      ) : (
+        transactions.map((tx) => (
+          <div
+            key={tx.txhash}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: "12px",
+              padding: "12px",
+              marginBottom: "10px",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+            }}
+          >
+            <p><strong>Hash:</strong> {tx.txhash}</p>
+            <p><strong>Height:</strong> {tx.height}</p>
+            <p><strong>Time:</strong> {tx.timestamp}</p>
+            <p><strong>From:</strong> {tx.tx.body.messages[0]?.from_address}</p>
+            <p>
+              <strong>Amount:</strong>{" "}
+              {tx.tx.body.messages[0]?.amount?.map((a) =>
+                `${parseFloat(a.amount) / 1_000_000} ${a.denom.replace("u", "")}`
+              ).join(", ")}
+            </p>
+          </div>
+        ))
+      )}
+
+      <h3 style={{ marginTop: "40px" }}>🛠 Отладка (баланс)</h3>
+      <pre>{JSON.stringify(data, null, 2)}</pre>
     </div>
   );
 }
+
