@@ -32,9 +32,9 @@ export default function Home() {
       });
   }, []);
 
-  const osmoBalanceRaw = data?.balances?.balances?.find(
-    (b) => b.denom === "uosmo"
-  )?.amount;
+  const osmoBalanceRaw = data?.balances?.find(
+  (b) => b.denom === "uosmo"
+)?.amount;
 
   const osmoBalance = osmoBalanceRaw
     ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6)
