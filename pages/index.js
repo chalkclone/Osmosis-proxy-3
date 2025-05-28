@@ -74,7 +74,7 @@ export default function Home() {
             <p>
               <strong>Amount:</strong>{" "}
               {tx.tx.body.messages[0]?.amount?.map((a) =>
-                `${parseFloat(a.amount) / 1_000_000} ${a.denom.replace("u", "")}`
+                ${parseFloat(a.amount) / 1_000_000} ${a.denom.replace("u", "")}
               ).join(", ")}
             </p>
           </div>
