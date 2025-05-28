@@ -11,9 +11,10 @@ export default function Home() {
     fetch("/api")
       .then((res) => res.json())
       .then((data) => {
-        setData(data);
-        setLoading(false);
-      })
+  console.log("API data:", data); // <--- добавим это
+  setData(data);
+  setLoading(false);
+})
       .catch((err) => {
         setError(err);
         setLoading(false);
