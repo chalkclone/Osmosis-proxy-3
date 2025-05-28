@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const lcdUrl = "https://lcd-osmosis.blockapsis.com"; // проверенный рабочий сервер
+  const lcdUrl = "https://lcd-osmosis.blockapsis.com"; // Рабочий LCD endpoint
   const wallet = "osmo1psaaa8z5twqgs4ahgqdxwl86eydmlwhesmv4s9";
 
   try {
