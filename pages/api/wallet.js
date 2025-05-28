@@ -11,7 +11,7 @@ res.setHeader('Access-Control-Allow-Origin', '*');
 res.status(200).json({
   address,
   balance: balanceData?.available || null,
-  transactions: txData || [],
+  transactions: txData?.txs || [],
 });
 } catch (error) {
 res.status(500).json({ error: 'Failed to fetch data', details: error.message });
