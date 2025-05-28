@@ -39,3 +39,43 @@ export default function Home() {
     </div>
   );
 }
+import { useEffect, useState } from "react";
+
+export default function Home() {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/transactions")
+      .then((res) => res.json())
+      .then((data) => {
+        setTransactions(data.tx_responses || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Ошибка при загрузке транзакций:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <p>Загрузка транзакций...</p>;
+
+  return (
+    <div>
+      <h1>📥 Входящие транзакции</h1>
+      <ul>
+        {transactions.map((tx) => (
+          <li key={tx.txhash}>
+            <strong>Hash:</strong> {tx.txhash}<br />
+            <strong>Height:</strong> {tx.height}<br />
+            <strong>Time:</strong> {tx.timestamp}<br />
+            <strong>From:</strong>{" "}
+            {tx.tx.body.messages[0]?.from_address}<br />
+            <strong>Amount:</strong>{" "}
+            {tx.tx.body.messages[0]?.amount?.map(a => `${a.amount} ${a.denom}`).join(", ")}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
