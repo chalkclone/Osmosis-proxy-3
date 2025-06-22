@@ -1,27 +1,17 @@
 import { useEffect, useState } from "react";
 
-// Карта известных токенов Stargaze
-const TOKEN_MAP = {
-  ustars: "STARS",
-  "ibc/9DF365E2C0EF4EA02FA771F638BB9C0C830EFCD354629BDC017F79B348B4E989": "TIA",
-  "ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518": "ATOM",
-  "ibc/3F4B7ED321FD27DC631B8A8B5540BB89A06A938D2873143082260A17B98A6936": "USDC",
-  // Добавляй сюда другие токены при необходимости
-};
-
 export default function Home() {
   const [data, setData] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [stargazeData, setStargazeData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [txLoading, setTxLoading] = useState(true);
-  const [stargazeLoading, setStargazeLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("/api")
       .then((res) => res.json())
       .then((data) => {
+        console.log("API data:", data);
         setData(data);
         setLoading(false);
       })
@@ -40,26 +30,31 @@ export default function Home() {
         console.error("Ошибка при загрузке транзакций:", err);
         setTxLoading(false);
       });
-
-    fetch("/api/stargaze/balance")
-      .then((res) => res.json())
-      .then((data) => {
-        setStargazeData(data.balances || []);
-        setStargazeLoading(false);
-      })
-      .catch((err) => {
-        console.error("Ошибка Stargaze:", err);
-        setStargazeLoading(false);
-      });
   }, []);
 
   const osmoBalanceRaw = data?.balances?.find((b) => b.denom === "uosmo")?.amount;
-  const osmoBalance = osmoBalanceRaw ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6) : null;
+  const osmoBalance = osmoBalanceRaw
+    ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6)
+    : null;
+
+  const tokenNames = {
+    uosmo: "OSMO",
+    ustars: "STARS",
+    uatom: "ATOM",
+    uakt: "AKT",
+    uion: "ION",
+    uregen: "REGEN",
+    uboot: "BOOT",
+    uhuahua: "HUAHUA",
+    ucrbrus: "CRBRUS",
+    ucmdx: "CMDX",
+    uusdc: "USDC",
+  };
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif", padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>💰 Баланс Osmosis</h1>
+        <h1 style={{ fontSize: "32px" }}>💰 Баланс Osmosis</h1>
         {loading ? (
           <p>Загрузка баланса...</p>
         ) : error ? (
@@ -73,29 +68,32 @@ export default function Home() {
         )}
       </div>
 
-      <div style={{ textAlign: "center", marginBottom: "30px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: "bold" }}>🌟 Баланс Stargaze</h1>
-        {stargazeLoading ? (
-          <p>Загрузка...</p>
-        ) : stargazeData.length > 0 ? (
-          <ul style={{ listStyle: "none", padding: 0, fontSize: "18px" }}>
-            {stargazeData.map((token, idx) => {
-              const denom = token.denom;
-              const ticker = TOKEN_MAP[denom] || denom.slice(0, 6).toUpperCase();
-              const amount = (parseFloat(token.amount) / 1_000_000).toFixed(6);
-              return (
-                <li key={idx} style={{ marginBottom: "6px" }}>
-                  {amount} {ticker}
-                </li>
-              );
-            })}
-          </ul>
+      <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "30px" }}>
+        <h2 style={{ fontSize: "28px" }}>🌟 Баланс Stargaze</h2>
+        {data?.stargaze?.balances?.length > 0 ? (
+          data.stargaze.balances.map((b, idx) => {
+            const denom = b.denom.startsWith("ibc/") ? b.denom : tokenNames[b.denom] || b.denom;
+            const symbol = denom.startsWith("ibc/") ? denom : tokenNames[b.denom] || denom;
+            return (
+              <div
+                key={idx}
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  color: "#4CAF50",
+                  marginBottom: "8px",
+                }}
+              >
+                {(parseFloat(b.amount) / 1_000_000).toFixed(6)} {symbol}
+              </div>
+            );
+          })
         ) : (
-          <p>Баланс пуст</p>
+          <p>Балансов не найдено</p>
         )}
       </div>
 
-      <h2 style={{ marginTop: "40px", fontSize: "24px", fontWeight: "bold" }}>📥 Входящие транзакции</h2>
+      <h2 style={{ marginTop: "40px" }}>📥 Входящие транзакции</h2>
       {txLoading ? (
         <p>Загрузка транзакций...</p>
       ) : (
@@ -109,7 +107,6 @@ export default function Home() {
               marginBottom: "15px",
               backgroundColor: "#f9f9f9",
               boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              fontSize: "14px",
             }}
           >
             <p><strong>Hash:</strong> {tx.txhash}</p>
@@ -119,7 +116,7 @@ export default function Home() {
             <p>
               <strong>Amount:</strong>{" "}
               {tx.tx.body.messages[0]?.amount?.map((a) =>
-                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${a.denom.replace("u", "")}`
+                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${tokenNames[a.denom] || a.denom.replace("u", "")}`
               ).join(", ")}
             </p>
           </div>
@@ -128,4 +125,3 @@ export default function Home() {
     </div>
   );
 }
-
