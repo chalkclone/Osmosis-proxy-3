@@ -53,7 +53,7 @@ export default function Home() {
 
   const formatBalance = (balance) => {
     const denom = balance.denom;
-    const amount = parseFloat(balance.amount) / 1_000_000;
+    const amount = parseFloat(balance.amount) / 1_00;
     const symbol = denomToSymbol[denom] || denom;
     return `${amount.toFixed(6)} ${symbol}`;
   };
