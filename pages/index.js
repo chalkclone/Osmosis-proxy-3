@@ -3,18 +3,19 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const [data, setData] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [stargazeData, setStargazeData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [txLoading, setTxLoading] = useState(true);
+  const [stargazeLoading, setStargazeLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("/api")
       .then((res) => res.json())
       .then((data) => {
-  console.log("API data:", data); // <--- добавим это
-  setData(data);
-  setLoading(false);
-})
+        setData(data);
+        setLoading(false);
+      })
       .catch((err) => {
         setError(err);
         setLoading(false);
@@ -30,15 +31,21 @@ export default function Home() {
         console.error("Ошибка при загрузке транзакций:", err);
         setTxLoading(false);
       });
+
+    fetch("/api/stargaze/balance")
+      .then((res) => res.json())
+      .then((data) => {
+        setStargazeData(data.balances || []);
+        setStargazeLoading(false);
+      })
+      .catch((err) => {
+        console.error("Ошибка Stargaze:", err);
+        setStargazeLoading(false);
+      });
   }, []);
 
-  const osmoBalanceRaw = data?.balances?.find(
-  (b) => b.denom === "uosmo"
-)?.amount;
-
-  const osmoBalance = osmoBalanceRaw
-    ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6)
-    : null;
+  const osmoBalanceRaw = data?.balances?.find((b) => b.denom === "uosmo")?.amount;
+  const osmoBalance = osmoBalanceRaw ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6) : null;
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif", padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
@@ -49,11 +56,26 @@ export default function Home() {
         ) : error ? (
           <p>Ошибка: {error.message}</p>
         ) : osmoBalance ? (
-          <div style={{ fontSize: "36px", fontWeight: "bold", color: "#4CAF50" }}>
-            {osmoBalance} OSMO
-          </div>
+          <div style={{ fontSize: "36px", fontWeight: "bold", color: "#4CAF50" }}>{osmoBalance} OSMO</div>
         ) : (
           <p>Баланс не найден</p>
+        )}
+      </div>
+
+      <div style={{ textAlign: "center", marginBottom: "30px" }}>
+        <h1 style={{ fontSize: "28px" }}>🌟 Баланс Stargaze</h1>
+        {stargazeLoading ? (
+          <p>Загрузка...</p>
+        ) : stargazeData.length > 0 ? (
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {stargazeData.map((token, idx) => (
+              <li key={idx} style={{ marginBottom: "8px", fontSize: "18px" }}>
+                {(parseFloat(token.amount) / 1_000_000).toFixed(6)} {token.denom.replace(/^u/, "").toUpperCase()}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>Баланс пуст</p>
         )}
       </div>
 
@@ -89,4 +111,5 @@ export default function Home() {
     </div>
   );
 }
+
 
