@@ -1,3 +1,4 @@
+> Владимир:
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -22,12 +23,8 @@ export default function Home() {
 
     fetch("/api/stargaze/balance")
       .then((res) => res.json())
-      .then((data) => {
-        setStargazeData(data);
-      })
-      .catch((err) => {
-        console.error("Ошибка Stargaze:", err);
-      });
+      .then((data) => setStargazeData(data))
+      .catch((err) => console.error("Ошибка Stargaze:", err));
 
     fetch("/api/transactions")
       .then((res) => res.json())
@@ -41,10 +38,8 @@ export default function Home() {
       });
   }, []);
 
- const denomToSymbol = {
+  const denomToSymbol = {
     ustars: "STARS",
-  
-    // IBC denoms
     "ibc/655BCEF3CDEBE32863FF281DBBE3B06160339E9897DC9C9C9821932A5F8BA6F8": "OSMO",
     "ibc/987C17B11ABC2B20019178ACE62929FE9840202CE79498E29FE8E5CB02B7C0A4": "STARS",
     "ibc/FED316EA6AA1F52581F61D5D4B38F2A09042D5EA1DABA07B8A23C1EE3C0C4651": "TIA",
@@ -53,11 +48,14 @@ export default function Home() {
     "ibc/1480B8FD20AD5FCAE81EA87584D269547DD4D436843C1D20F15E00EB64743EF4": "AKT"
   };
 
-  const tokenPrices = {
+> Владимир:
+const tokenPrices = {
     OSMO: 0.68,
     STARS: 0.02,
     ATOM: 7.23,
     TIA: 1.08,
+    USDC: 1,
+    AKT: 1.46
   };
 
   const formatBalance = (balance) => {
@@ -82,11 +80,8 @@ export default function Home() {
     return { total: total.toFixed(2), lines };
   };
 
-  const osmosisBalancesRaw = osmosisData?.balances || [];
-  const stargazeBalancesRaw = stargazeData?.balances || [];
-
-  const osmosisFormatted = osmosisBalancesRaw.map(formatBalance).filter(Boolean);
-  const stargazeFormatted = stargazeBalancesRaw.map(formatBalance).filter(Boolean);
+  const osmosisFormatted = (osmosisData?.balances || []).map(formatBalance).filter(Boolean);
+  const stargazeFormatted = (stargazeData?.balances || []).map(formatBalance).filter(Boolean);
 
   const osmoUSD = calculateTotalUSD(osmosisFormatted);
   const stargazeUSD = calculateTotalUSD(stargazeFormatted);
@@ -109,30 +104,35 @@ export default function Home() {
       {txLoading ? (
         <p>Загрузка транзакций...</p>
       ) : (
-        transactions.map((tx) => (
-          <div
-            key={tx.txhash}
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: "12px",
-              padding: "16px",
-              marginBottom: "15px",
-              backgroundColor: "#f9f9f9",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-            }}
-          >
-            <p><strong>Hash:</strong> {tx.txhash}</p>
-            <p><strong>Height:</strong> {tx.height}</p>
-            <p><strong>Time:</strong> {tx.timestamp}</p>
-            <p><strong>From:</strong> {tx.tx.body.messages[0]?.from_address}</p>
-            <p>
-              <strong>Amount:</strong>{" "}
-              {tx.tx.body.messages[0]?.amount?.map((a) =>
-                ${(parseFloat(a.amount) / 1_000_000).toFixed(2)} ${denomToSymbol[a.denom] || a.denom}
-              ).join(", ")}
-            </p>
-          </div>
-        ))
+        transactions.map((tx) => {
+          const msg = tx.tx.body.messages[0];
+          const from = msg?.from_address || "—";
+          const amounts = msg?.amount?.map((a, idx) => {
+            const symbol = denomToSymbol[a.denom] || a.denom;
+            const amt = (parseFloat(a.amount) / 1_000_000).toFixed(2);
+            return ${amt} ${symbol};
+          }).join(", ");
+
+          return (
+            <div
+              key={tx.txhash}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: "12px",
+                padding: "16px",
+                marginBottom: "15px",
+                backgroundColor: "#f9f9f9",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+              }}
+            >
+              <p><strong>Hash:</strong> {tx.txhash}</p>
+              <p><strong>Height:</strong> {tx.height}</p>
+              <p><strong>Time:</strong> {tx.timestamp}</p>
+              <p><strong>From:</strong> {from}</p>
+              <p><strong>Amount:</strong> {amounts || "—"}</p>
+            </div>
+          );
+        })
       )}
     </div>
   );
