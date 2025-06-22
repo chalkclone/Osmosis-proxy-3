@@ -48,18 +48,46 @@ export default function Home() {
     uakt: "AKT",
     uusdc: "USDC",
     ubtc: "BTC",
-    // добавь при необходимости другие
+    uregen: "REGEN",
+    uion: "ION",
+    ujuno: "JUNO",
+    ucomdex: "CMDX",
+    ustrd: "STRD",
+    uboot: "BOOT",
+    uluna: "LUNA",
+    ucre: "CRE",
+    umntl: "MNTL",
+    ungm: "NGM",
+    uphoton: "PHOTON",
+    untrn: "NTRN",
+    "ibc/9DF365E2C0EF4EA02FA771F638BB9C0C830EFCD354629BDC017F79B348B4E989": "OSMO",
+    "ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518": "STARS",
+    "ibc/9DF365E2C0EF4EA02FA771F638BB9C0C830EFCD354629BDC017F79B348B4E989": "TIA",
+  "ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518": "ATOM",
+  "ibc/3F4B7ED321FD27DC631B8A8B5540BB89A06A938D2873143082260A17B98A6936": "USDC",
+    // Добавляй другие IBC токены при необходимости
   };
 
   const formatBalance = (balance) => {
     const denom = balance.denom;
-    const amount = parseFloat(balance.amount) / 1_00;
     const symbol = denomToSymbol[denom] || denom;
-    return `${amount.toFixed(6)} ${symbol}`;
+    const amount = parseFloat(balance.amount) / 1_000_000;
+    return amount > 0 ? `${amount.toFixed(6)} ${symbol}` : null;
   };
 
   const osmoBalanceRaw = osmosisData?.balances?.find((b) => b.denom === "uosmo")?.amount;
   const osmoBalance = osmoBalanceRaw ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6) : null;
+
+  const stargazeBalances = stargazeData?.balances
+    ?.map(formatBalance)
+    .filter((b) => b !== null);
+
+  const stargazeTotal = stargazeData?.balances?.reduce((total, balance) => {
+    if (balance.denom === "ustars") {
+      return total + parseFloat(balance.amount) / 1_000_000;
+    }
+    return total;
+  }, 0);
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif", padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
@@ -78,19 +106,21 @@ export default function Home() {
         )}
       </div>
 
-      <div style={{ textAlign: "center", marginBottom: "30px" }}>
-        <h1 style={{ fontSize: "32px" }}>💰 Баланс Stargaze</h1>
-        {stargazeData?.balances?.length > 0 ? (
-          stargazeData.balances.map((balance, idx) => (
-            <div
-              key={idx}
-              style={{ fontSize: "24px", fontWeight: "bold", color: "#4CAF50", marginTop: "10px" }}
-            >
-              {formatBalance(balance)}
-            </div>
-          ))
+      <div style={{ marginBottom: "30px" }}>
+        <h1 style={{ fontSize: "32px", textAlign: "center" }}>🌟 Баланс Stargaze</h1>
+        {stargazeTotal ? (
+          <div style={{ textAlign: "center", fontSize: "24px", marginBottom: "10px", fontWeight: "bold" }}>
+            Общий баланс: {stargazeTotal.toFixed(6)} STARS
+          </div>
+        ) : null}
+        {stargazeBalances?.length > 0 ? (
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {stargazeBalances.map((b, idx) => (
+              <li key={idx} style={{ fontSize: "20px", marginBottom: "8px", color: "#4CAF50", fontFamily: "Arial, sans-serif" }}>{b}</li>
+            ))}
+          </ul>
         ) : (
-          <p>Балансов не найдено</p>
+          <p style={{ textAlign: "center" }}>Балансов не найдено</p>
         )}
       </div>
 
@@ -108,7 +138,6 @@ export default function Home() {
               marginBottom: "15px",
               backgroundColor: "#f9f9f9",
               boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              fontFamily: "Arial, sans-serif"
             }}
           >
             <p><strong>Hash:</strong> {tx.txhash}</p>
@@ -118,7 +147,7 @@ export default function Home() {
             <p>
               <strong>Amount:</strong>{" "}
               {tx.tx.body.messages[0]?.amount?.map((a) =>
-                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${denomToSymbol[a.denom] || a.denom.replace("u", "")}`
+                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${denomToSymbol[a.denom] || a.denom}`
               ).join(", ")}
             </p>
           </div>
