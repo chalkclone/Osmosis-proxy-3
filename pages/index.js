@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [data, setData] = useState(null);
+  const [osmosisData, setOsmosisData] = useState(null);
+  const [stargazeData, setStargazeData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [txLoading, setTxLoading] = useState(true);
@@ -11,13 +12,21 @@ export default function Home() {
     fetch("/api")
       .then((res) => res.json())
       .then((data) => {
-        console.log("API data:", data);
-        setData(data);
+        setOsmosisData(data);
         setLoading(false);
       })
       .catch((err) => {
         setError(err);
         setLoading(false);
+      });
+
+    fetch("/api/stargaze/balance")
+      .then((res) => res.json())
+      .then((data) => {
+        setStargazeData(data);
+      })
+      .catch((err) => {
+        console.error("Ошибка Stargaze:", err);
       });
 
     fetch("/api/transactions")
@@ -32,24 +41,25 @@ export default function Home() {
       });
   }, []);
 
-  const osmoBalanceRaw = data?.balances?.find((b) => b.denom === "uosmo")?.amount;
-  const osmoBalance = osmoBalanceRaw
-    ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6)
-    : null;
-
-  const tokenNames = {
+  const denomToSymbol = {
     uosmo: "OSMO",
     ustars: "STARS",
     uatom: "ATOM",
     uakt: "AKT",
-    uion: "ION",
-    uregen: "REGEN",
-    uboot: "BOOT",
-    uhuahua: "HUAHUA",
-    ucrbrus: "CRBRUS",
-    ucmdx: "CMDX",
     uusdc: "USDC",
+    ubtc: "BTC",
+    // добавь при необходимости другие
   };
+
+  const formatBalance = (balance) => {
+    const denom = balance.denom;
+    const amount = parseFloat(balance.amount) / 1_000_000;
+    const symbol = denomToSymbol[denom] || denom;
+    return `${amount.toFixed(6)} ${symbol}`;
+  };
+
+  const osmoBalanceRaw = osmosisData?.balances?.find((b) => b.denom === "uosmo")?.amount;
+  const osmoBalance = osmoBalanceRaw ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6) : null;
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif", padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
@@ -68,26 +78,17 @@ export default function Home() {
         )}
       </div>
 
-      <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "30px" }}>
-        <h2 style={{ fontSize: "28px" }}>🌟 Баланс Stargaze</h2>
-        {data?.stargaze?.balances?.length > 0 ? (
-          data.stargaze.balances.map((b, idx) => {
-            const denom = b.denom.startsWith("ibc/") ? b.denom : tokenNames[b.denom] || b.denom;
-            const symbol = denom.startsWith("ibc/") ? denom : tokenNames[b.denom] || denom;
-            return (
-              <div
-                key={idx}
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  color: "#4CAF50",
-                  marginBottom: "8px",
-                }}
-              >
-                {(parseFloat(b.amount) / 1_000_000).toFixed(6)} {symbol}
-              </div>
-            );
-          })
+      <div style={{ textAlign: "center", marginBottom: "30px" }}>
+        <h1 style={{ fontSize: "32px" }}>💰 Баланс Stargaze</h1>
+        {stargazeData?.balances?.length > 0 ? (
+          stargazeData.balances.map((balance, idx) => (
+            <div
+              key={idx}
+              style={{ fontSize: "24px", fontWeight: "bold", color: "#4CAF50", marginTop: "10px" }}
+            >
+              {formatBalance(balance)}
+            </div>
+          ))
         ) : (
           <p>Балансов не найдено</p>
         )}
@@ -107,6 +108,7 @@ export default function Home() {
               marginBottom: "15px",
               backgroundColor: "#f9f9f9",
               boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+              fontFamily: "Arial, sans-serif"
             }}
           >
             <p><strong>Hash:</strong> {tx.txhash}</p>
@@ -116,7 +118,7 @@ export default function Home() {
             <p>
               <strong>Amount:</strong>{" "}
               {tx.tx.body.messages[0]?.amount?.map((a) =>
-                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${tokenNames[a.denom] || a.denom.replace("u", "")}`
+                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${denomToSymbol[a.denom] || a.denom.replace("u", "")}`
               ).join(", ")}
             </p>
           </div>
@@ -125,3 +127,4 @@ export default function Home() {
     </div>
   );
 }
+
