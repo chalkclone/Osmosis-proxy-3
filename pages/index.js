@@ -1,127 +1,129 @@
 import { useEffect, useState } from "react";
 
+// Карта известных токенов Stargaze
+const TOKEN_MAP = {
+  ustars: "STARS",
+  "ibc/9DF365E2C0EF4EA02FA771F638BB9C0C830EFCD354629BDC017F79B348B4E989": "TIA",
+  "ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518": "ATOM",
+  "ibc/3F4B7ED321FD27DC631B8A8B5540BB89A06A938D2873143082260A17B98A6936": "USDC",
+  // Добавляй сюда другие токены при необходимости
+};
+
 export default function Home() {
-  const [osmosisData, setOsmosisData] = useState(null);
-  const [stargazeData, setStargazeData] = useState(null);
+  const [data, setData] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [stargazeData, setStargazeData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [txLoading, setTxLoading] = useState(true);
+  const [stargazeLoading, setStargazeLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("/api")
       .then((res) => res.json())
-      .then((data) => setOsmosisData(data))
-      .catch((err) => setError(err))
-      .finally(() => setLoading(false));
-
-    fetch("/api/stargaze/balance")
-      .then((res) => res.json())
-      .then((data) => setStargazeData(data))
-      .catch((err) => console.error("Ошибка Stargaze:", err));
+      .then((data) => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err);
+        setLoading(false);
+      });
 
     fetch("/api/transactions")
       .then((res) => res.json())
       .then((data) => {
         setTransactions(data.tx_responses || []);
+        setTxLoading(false);
       })
-      .catch((err) => console.error("Ошибка при загрузке транзакций:", err))
-      .finally(() => setTxLoading(false));
+      .catch((err) => {
+        console.error("Ошибка при загрузке транзакций:", err);
+        setTxLoading(false);
+      });
+
+    fetch("/api/stargaze/balance")
+      .then((res) => res.json())
+      .then((data) => {
+        setStargazeData(data.balances || []);
+        setStargazeLoading(false);
+      })
+      .catch((err) => {
+        console.error("Ошибка Stargaze:", err);
+        setStargazeLoading(false);
+      });
   }, []);
 
-  const denomToSymbol = {
-    ustars: "STARS",
-    "ibc/655BCEF3CDEBE32863FF281DBBE3B06160339E9897DC9C9C9821932A5F8BA6F8": "OSMO",
-    "ibc/FED316EA6AA1F52581F61D5D4B38F2A09042D5EA1DABA07B8A23C1EE3C0C4651": "TIA",
-    "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2": "ATOM",
-    "ibc/D189335C6E4A68B513C10AB227BF1C1D38C746766278BA3EEB4FB14124F1D858": "USDC",
-    "ibc/1480B8FD20AD5FCAE81EA87584D269547DD4D436843C1D20F15E00EB64743EF4": "AKT"
-  };
-
-  const tokenPrices = {
-    OSMO: 0.68,
-    STARS: 0.02,
-    ATOM: 7.23,
-    TIA: 1.08,
-    USDC: 1,
-    AKT: 1.46
-  };
-
-  const formatBalance = (balance) => {
-    const denom = balance.denom;
-    const symbol = denomToSymbol[denom] || denom;
-    const amount = parseFloat(balance.amount) / 1_000_000;
-    return amount > 0 ? { symbol, amount } : null;
-  };
-
-  const calculateTotalUSD = (balances) => {
-    let total = 0;
-    const lines = balances.map((b) => {
-      const price = tokenPrices[b.symbol] || 0;
-      const value = b.amount * price;
-      total += value;
-      return (
-        <li key={b.symbol} style={{ fontSize: "22px", fontWeight: 500, color: "#4CAF50" }}>
-          {b.amount.toFixed(2)} {b.symbol} ≈ {value.toFixed(2)} USDC
-        </li>
-      );
-    });
-    return { total: total.toFixed(2), lines };
-  };
-
-  const osmosisFormatted = (osmosisData?.balances || []).map(formatBalance).filter(Boolean);
-  const stargazeFormatted = (stargazeData?.balances || []).map(formatBalance).filter(Boolean);
-
-  const osmoUSD = calculateTotalUSD(osmosisFormatted);
-  const stargazeUSD = calculateTotalUSD(stargazeFormatted);
+  const osmoBalanceRaw = data?.balances?.find((b) => b.denom === "uosmo")?.amount;
+  const osmoBalance = osmoBalanceRaw ? (parseFloat(osmoBalanceRaw) / 1_000_000).toFixed(6) : null;
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif", padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
-        <h1 style={{ fontSize: "32px" }}>💰 Баланс Osmosis</h1>
-        <h3 style={{ fontSize: "20px", color: "#333" }}>Общий баланс: {osmoUSD.total} USDC</h3>
-        <ul style={{ listStyle: "none", padding: 0 }}>{osmoUSD.lines}</ul>
+        <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>💰 Баланс Osmosis</h1>
+        {loading ? (
+          <p>Загрузка баланса...</p>
+        ) : error ? (
+          <p>Ошибка: {error.message}</p>
+        ) : osmoBalance ? (
+          <div style={{ fontSize: "36px", fontWeight: "bold", color: "#4CAF50" }}>
+            {osmoBalance} OSMO
+          </div>
+        ) : (
+          <p>Баланс не найден</p>
+        )}
       </div>
 
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
-        <h1 style={{ fontSize: "32px" }}>🌟 Баланс Stargaze</h1>
-        <h3 style={{ fontSize: "20px", color: "#333" }}>Общий баланс: {stargazeUSD.total} USDC</h3>
-        <ul style={{ listStyle: "none", padding: 0 }}>{stargazeUSD.lines}</ul>
+        <h1 style={{ fontSize: "28px", fontWeight: "bold" }}>🌟 Баланс Stargaze</h1>
+        {stargazeLoading ? (
+          <p>Загрузка...</p>
+        ) : stargazeData.length > 0 ? (
+          <ul style={{ listStyle: "none", padding: 0, fontSize: "18px" }}>
+            {stargazeData.map((token, idx) => {
+              const denom = token.denom;
+              const ticker = TOKEN_MAP[denom] || denom.slice(0, 6).toUpperCase();
+              const amount = (parseFloat(token.amount) / 1_000_000).toFixed(6);
+              return (
+                <li key={idx} style={{ marginBottom: "6px" }}>
+                  {amount} {ticker}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p>Баланс пуст</p>
+        )}
       </div>
 
-      <h2 style={{ marginTop: "40px" }}>📥 Входящие транзакции</h2>
+      <h2 style={{ marginTop: "40px", fontSize: "24px", fontWeight: "bold" }}>📥 Входящие транзакции</h2>
       {txLoading ? (
         <p>Загрузка транзакций...</p>
       ) : (
-        transactions.map((tx) => {
-          const msg = tx?.tx?.body?.messages?.[0];
-          const from = msg?.from_address || "—";
-          const amounts = msg?.amount?.map((a, idx) => {
-            const symbol = denomToSymbol[a.denom] || a.denom;
-            const amt = (parseFloat(a.amount) / 1_000_000).toFixed(2);
-            return `${amt} ${symbol}`;
-          }).join(", ");
-
-          return (
-            <div
-              key={tx.txhash}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: "12px",
-                padding: "16px",
-                marginBottom: "15px",
-                backgroundColor: "#f9f9f9",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              }}
-            >
-              <p><strong>Hash:</strong> {tx.txhash}</p>
-              <p><strong>Height:</strong> {tx.height}</p>
-              <p><strong>Time:</strong> {tx.timestamp}</p>
-              <p><strong>From:</strong> {from}</p>
-              <p><strong>Amount:</strong> {amounts || "—"}</p>
-            </div>
-          );
-        })
+        transactions.map((tx) => (
+          <div
+            key={tx.txhash}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: "12px",
+              padding: "16px",
+              marginBottom: "15px",
+              backgroundColor: "#f9f9f9",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+              fontSize: "14px",
+            }}
+          >
+            <p><strong>Hash:</strong> {tx.txhash}</p>
+            <p><strong>Height:</strong> {tx.height}</p>
+            <p><strong>Time:</strong> {tx.timestamp}</p>
+            <p><strong>From:</strong> {tx.tx.body.messages[0]?.from_address}</p>
+            <p>
+              <strong>Amount:</strong>{" "}
+              {tx.tx.body.messages[0]?.amount?.map((a) =>
+                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${a.denom.replace("u", "")}`
+              ).join(", ")}
+            </p>
+          </div>
+        ))
       )}
     </div>
   );
