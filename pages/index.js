@@ -11,14 +11,9 @@ export default function Home() {
   useEffect(() => {
     fetch("/api")
       .then((res) => res.json())
-      .then((data) => {
-        setOsmosisData(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err);
-        setLoading(false);
-      });
+      .then((data) => setOsmosisData(data))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
 
     fetch("/api/stargaze/balance")
       .then((res) => res.json())
@@ -29,12 +24,9 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => {
         setTransactions(data.tx_responses || []);
-        setTxLoading(false);
       })
-      .catch((err) => {
-        console.error("Ошибка при загрузке транзакций:", err);
-        setTxLoading(false);
-      });
+      .catch((err) => console.error("Ошибка при загрузке транзакций:", err))
+      .finally(() => setTxLoading(false));
   }, []);
 
   const denomToSymbol = {
@@ -46,7 +38,7 @@ export default function Home() {
     "ibc/1480B8FD20AD5FCAE81EA87584D269547DD4D436843C1D20F15E00EB64743EF4": "AKT"
   };
 
-const tokenPrices = {
+  const tokenPrices = {
     OSMO: 0.68,
     STARS: 0.02,
     ATOM: 7.23,
@@ -102,12 +94,12 @@ const tokenPrices = {
         <p>Загрузка транзакций...</p>
       ) : (
         transactions.map((tx) => {
-          const msg = tx.tx.body.messages[0];
+          const msg = tx?.tx?.body?.messages?.[0];
           const from = msg?.from_address || "—";
           const amounts = msg?.amount?.map((a, idx) => {
             const symbol = denomToSymbol[a.denom] || a.denom;
             const amt = (parseFloat(a.amount) / 1_000_000).toFixed(2);
-            return ${amt} ${symbol};
+            return `${amt} ${symbol}`;
           }).join(", ");
 
           return (
