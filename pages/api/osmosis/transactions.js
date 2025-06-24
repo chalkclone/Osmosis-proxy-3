@@ -1,20 +1,18 @@
 export default async function handler(req, res) {
   const address = "osmo1psaaa8z5twqgs4ahgqdxwl86eydmlwhesmv4s9";
-  const url = `https://osmosis-api.polkachu.com/cosmos/tx/v1beta1/txs?events=transfer.recipient=${address}&order_by=ORDER_BY_DESC&limit=50`;
+  const query = encodeURIComponent(`events=transfer.recipient='${address}'`);
+  const url = `https://osmosis-api.polkachu.com/cosmos/tx/v1beta1/txs?query=${query}&pagination.limit=50&pagination.reverse=true`;
 
   try {
-    const response = await fetch(url);
-    const data = await response.json();
+    const resp = await fetch(url);
+    const data = await resp.json();
 
-    if (!response.ok || !data.tx_responses) {
-      throw new Error("Invalid response from Osmosis API");
+    if (!resp.ok || !data.tx_responses) {
+      throw new Error("Invalid Osmosis API response");
     }
 
     res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({
-      error: "Ошибка при получении транзакций Osmosis",
-      details: error.message,
-    });
+  } catch (err) {
+    res.status(500).json({ error: "Osmosis transactions fetch error", details: err.message });
   }
 }
