@@ -1,8 +1,7 @@
 export default async function handler(req, res) {
   const address = "stars1psaaa8z5twqgs4ahgqdxwl86eydmlwhevugcdx";
   const query = encodeURIComponent(`events=transfer.recipient='${address}'`);
-  const url = `https://rest.stargaze-apis.com/cosmos/tx/v1beta1/txs?query=${query}&pagination.limit=50&pagination.reverse=true`;
-
+const url = `https://rest.stargaze-apis.com/cosmos/tx/v1beta1/txs?events=transfer.recipient=${address}&order_by=ORDER_BY_DESC&limit=50`;
   try {
     const resp = await fetch(url);
     const data = await resp.json();
