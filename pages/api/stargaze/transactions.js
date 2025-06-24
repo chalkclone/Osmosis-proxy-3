@@ -1,25 +1,23 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next'
 
-const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method Not Allowed' })
+  }
+
   try {
-    const response = await fetch('https://api.hubble.figment.io/v1/stargaze/transactions', {
-      headers: {
-        Authorization: `Bearer ${process.env.FIGMENT_API_KEY}`
-      }
-    });
+    // Здесь подставьте свой API-запрос или логику
+    const response = await fetch('https://api.stargaze.zone/txs') // Пример API
 
     if (!response.ok) {
-      const text = await response.text();
-      console.error("Ошибка от внешнего API:", text);
-      return res.status(500).json({ error: "Ошибка получения данных с внешнего API", detail: text });
+      throw new Error(`Stargaze API returned status ${response.status}`)
     }
 
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (error: any) {
-    console.error("Ошибка сервера:", error.message || error);
-    res.status(500).json({ error: "Ошибка сервера", detail: error.message || error });
+    const data = await response.json()
+    return res.status(200).json(data)
+  } catch (error) {
+    console.error('API Error:', error)
+    return res.status(500).json({ error: 'Internal Server Error' })
   }
-};
+}
 
-export default handler;
