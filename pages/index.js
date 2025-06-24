@@ -1,3 +1,5 @@
+// Файл: pages/index.js
+
 import { useEffect, useState } from "react";
 import osmoTokenMap from "../utils/osmoTokenMap";
 import stargazeTokenMap from "../utils/stargazeTokenMap";
@@ -55,10 +57,16 @@ export default function Home() {
       const msg = tx.tx.body.messages[0];
       const from = msg?.from_address;
       const amountList = msg?.amount || [];
+      const success = tx.code === 0; // добавлено определение успеха транзакции
 
       return (
-        <div key={tx.txhash} className="border p-4 rounded-xl bg-white shadow mb-3 text-sm">
-          <div className="mb-1 font-semibold">🌐 {network}</div>
+        <div key={tx.txhash} className="relative border p-4 rounded-xl bg-white shadow mb-3 text-sm">
+          {/* Логотип сети в левом верхнем углу */}
+          <div className="absolute top-2 left-2">
+            {network === "Osmosis" ? "🌊" : "🌟"}
+          </div>
+          {/* Название сети (с отступом слева) */}
+          <div className="mb-1 font-semibold ml-6">{network}</div>
           <div><strong>Hash:</strong> {tx.txhash.slice(0, 16)}...</div>
           <div><strong>From:</strong> {from}</div>
           <div><strong>Time:</strong> {new Date(tx.timestamp).toLocaleString()}</div>
@@ -69,6 +77,10 @@ export default function Home() {
               return <span key={idx}>{val} {ticker} </span>
             })
           }</div>
+          {/* Иконка результата транзакции в правом нижнем углу */}
+          <div className="absolute bottom-2 right-2">
+            {success ? "✅" : "❌"}
+          </div>
         </div>
       );
     });
