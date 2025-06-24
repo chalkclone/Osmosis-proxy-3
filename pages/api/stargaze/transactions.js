@@ -8,6 +8,8 @@ export default async function handler(req, res) {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Ошибка при получении транзакций Stargaze");
     const data = await response.json();
+console.log("Stargaze transactions response:", JSON.stringify(data, null, 2));
+
     res.status(200).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
