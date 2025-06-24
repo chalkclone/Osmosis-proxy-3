@@ -1,23 +1,24 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method Not Allowed' })
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
+
+  const address = 'stars1psaaa8z5twqgs4ahgqdxwl86eydmlwhevugcdx';
+  const query = encodeURIComponent(`events=transfer.recipient='${address}'`);
+  const url = `https://rest.stargaze-apis.com/cosmos/tx/v1beta1/txs?query=${query}&pagination.limit=50&pagination.reverse=true`;
 
   try {
-    // Здесь подставьте свой API-запрос или логику
-    const response = await fetch('https://api.stargaze.zone/txs') // Пример API
+    const resp = await fetch(url);
+    const data = await resp.json();
 
-    if (!response.ok) {
-      throw new Error(`Stargaze API returned status ${response.status}`)
+    if (!resp.ok || !data.tx_responses) {
+      throw new Error('Invalid Stargaze API response');
     }
 
-    const data = await response.json()
-    return res.status(200).json(data)
-  } catch (error) {
-    console.error('API Error:', error)
-    return res.status(500).json({ error: 'Internal Server Error' })
-  }
-}
+    res.status(200).json(data);
+  } catch (err: any) {
+    console.error('Stargaze fetch error:', err);
+    res.status(500).json({
 
