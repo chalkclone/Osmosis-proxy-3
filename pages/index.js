@@ -1,29 +1,24 @@
 import { useEffect, useState } from "react";
-import TOKEN_MAP from "../utils/tokenMap";
+import osmoTokenMap from "../utils/osmoTokenMap";
+import stargazeTokenMap from "../utils/stargazeTokenMap";
 
 export default function Home() {
   const [osmosisData, setOsmosisData] = useState([]);
   const [stargazeData, setStargazeData] = useState([]);
-  const [transactions, setTransactions] = useState([]);
+  const [osmosisTxs, setOsmosisTxs] = useState([]);
+  const [stargazeTxs, setStargazeTxs] = useState([]);
   const [prices, setPrices] = useState({});
   const [showTxs, setShowTxs] = useState(false);
 
   useEffect(() => {
-    fetch("/api")
-      .then((res) => res.json())
-      .then((data) => setOsmosisData(data.balances || []));
-
-    fetch("/api/stargaze/balance")
-      .then((res) => res.json())
-      .then((data) => setStargazeData(data.balances || []));
-
-    fetch("/api/transactions")
-      .then((res) => res.json())
-      .then((data) => setTransactions(data.tx_responses || []));
+    fetch("/api/osmosis/balance").then(res => res.json()).then(data => setOsmosisData(data.balances || []));
+    fetch("/api/stargaze/balance").then(res => res.json()).then(data => setStargazeData(data.balances || []));
+    fetch("/api/osmosis/transactions").then(res => res.json()).then(data => setOsmosisTxs(data.tx_responses || []));
+    fetch("/api/stargaze/transactions").then(res => res.json()).then(data => setStargazeTxs(data.tx_responses || []));
 
     fetch("https://api.coingecko.com/api/v3/simple/price?ids=osmosis,stargaze,cosmos,celestia,tether&vs_currencies=usd")
-      .then((res) => res.json())
-      .then((data) =>
+      .then(res => res.json())
+      .then(data =>
         setPrices({
           OSMO: data.osmosis.usd,
           STARS: data.stargaze.usd,
@@ -34,73 +29,79 @@ export default function Home() {
       );
   }, []);
 
-  const renderBalances = (balances, title) => {
-    let totalUSDC = 0;
-
+  const formatBalance = (balances, map) => {
+    let total = 0;
     const items = balances.map((token, idx) => {
       const denom = token.denom;
-      const ticker = TOKEN_MAP[denom] || denom.slice(-6).toUpperCase();
+      const ticker = map[denom] || denom.slice(-6).toUpperCase();
       const amount = parseFloat(token.amount) / 1_000_000;
       const price = prices[ticker] || 0;
       const value = amount * price;
-      totalUSDC += value;
+      total += value;
 
       return (
-        <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-          <div>{amount.toFixed(6)} {ticker}</div>
-          <div>{value.toFixed(2)} USDC</div>
+        <div key={idx} className="flex justify-between text-sm py-1">
+          <span>{amount.toFixed(6)} {ticker}</span>
+          <span>{value.toFixed(2)} USDC</span>
         </div>
       );
     });
 
-    return (
-      <div style={{ marginBottom: "30px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "bold" }}>
-          {title} — {totalUSDC.toFixed(2)} USDC
-        </h2>
-        {items}
-      </div>
-    );
+    return { items, total };
   };
 
+  const renderTxs = (txs, network, map) => {
+    return txs.map((tx) => {
+      const msg = tx.tx.body.messages[0];
+      const from = msg?.from_address;
+      const amountList = msg?.amount || [];
+
+      return (
+        <div key={tx.txhash} className="border p-4 rounded-xl bg-white shadow mb-3 text-sm">
+          <div className="mb-1 font-semibold">🌐 {network}</div>
+          <div><strong>Hash:</strong> {tx.txhash.slice(0, 16)}...</div>
+          <div><strong>From:</strong> {from}</div>
+          <div><strong>Time:</strong> {new Date(tx.timestamp).toLocaleString()}</div>
+          <div><strong>Amount:</strong> {
+            amountList.map((a, idx) => {
+              const ticker = map[a.denom] || a.denom.slice(-6).toUpperCase();
+              const val = (parseFloat(a.amount) / 1_000_000).toFixed(6);
+              return <span key={idx}>{val} {ticker} </span>
+            })
+          }</div>
+        </div>
+      );
+    });
+  };
+
+  const { items: osmoItems, total: osmoTotal } = formatBalance(osmosisData, osmoTokenMap);
+  const { items: starItems, total: starTotal } = formatBalance(stargazeData, stargazeTokenMap);
+
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", padding: "20px", maxWidth: "800px", margin: "0 auto", backgroundColor: "#f0f2f5", borderRadius: "12px" }}>
-      {renderBalances(osmosisData, "🌊 Osmosis")}
-      {renderBalances(stargazeData, "🌟 Stargaze")}
+    <div className="p-6 max-w-3xl mx-auto bg-gray-100 min-h-screen rounded-xl">
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-2">🌊 Osmosis — {osmoTotal.toFixed(2)} USDC</h2>
+        <div>{osmoItems}</div>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-2">🌟 Stargaze — {starTotal.toFixed(2)} USDC</h2>
+        <div>{starItems}</div>
+      </div>
 
       <h2
         onClick={() => setShowTxs(!showTxs)}
-        style={{ cursor: "pointer", fontSize: "20px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "10px", marginTop: "40px" }}
+        className="text-lg font-bold mb-4 cursor-pointer flex items-center gap-2"
       >
         📥 Входящие транзакции {showTxs ? "▲" : "▼"}
       </h2>
 
-      {showTxs &&
-        transactions.map((tx) => (
-          <div
-            key={tx.txhash}
-            style={{
-              border: "1px solid #ccc",
-              borderRadius: "10px",
-              padding: "10px",
-              marginBottom: "10px",
-              background: "#fff",
-              fontSize: "14px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-            }}
-          >
-            <p><strong>Hash:</strong> {tx.txhash}</p>
-            <p><strong>Height:</strong> {tx.height}</p>
-            <p><strong>Time:</strong> {tx.timestamp}</p>
-            <p><strong>From:</strong> {tx.tx.body.messages[0]?.from_address}</p>
-            <p>
-              <strong>Amount:</strong>{" "}
-              {tx.tx.body.messages[0]?.amount?.map((a) =>
-                `${(parseFloat(a.amount) / 1_000_000).toFixed(6)} ${a.denom.replace("u", "")}`
-              ).join(", ")}
-            </p>
-          </div>
-        ))}
+      {showTxs && (
+        <div>
+          {renderTxs(osmosisTxs, "Osmosis", osmoTokenMap)}
+          {renderTxs(stargazeTxs, "Stargaze", stargazeTokenMap)}
+        </div>
+      )}
     </div>
   );
 }
