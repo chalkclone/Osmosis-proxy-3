@@ -1,4 +1,3 @@
-// 📁 pages/api/osmosis/transactions.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 
@@ -6,28 +5,22 @@ const address = 'osmo1psaaa8z5twqgs4ahgqdxwl86eydmlwhesmv4s9';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const result = await axios.get(
-      `https://api-osmosis.imperator.co/txs/v1/account/${address}`
+    const { data } = await axios.get(
+      `https://rest-osmosis.ecostake.com/cosmos/tx/v1beta1/txs?events=transfer.recipient='${address}'&order_by=ORDER_BY_DESC&limit=20`
     );
 
-    const txs = result.data.txs.slice(0, 20).map((tx: any) => {
-      const isIncoming = tx.to_address === address;
+    const transactions = data.tx_responses.map((tx: any) => ({
+      hash: tx.txhash,
+      from: tx.tx.body?.messages?.[0]?.from_address || 'unknown',
+      to: tx.tx.body?.messages?.[0]?.to_address || 'unknown',
+      amount: tx.tx.body?.messages?.[0]?.amount?.[0]?.amount || '0',
+      denom: tx.tx.body?.messages?.[0]?.amount?.[0]?.denom || '',
+      success: tx.code === 0,
+      timestamp: tx.timestamp,
+    }));
 
-      return {
-        hash: tx.txhash,
-        from: tx.from_address,
-        to: tx.to_address,
-        amount: (parseFloat(tx.amount.amount) / 1_000_000).toFixed(2),
-        denom: tx.amount.denom,
-        success: tx.code === 0,
-        timestamp: tx.timestamp,
-        direction: isIncoming ? 'incoming' : 'outgoing',
-      };
-    });
-
-    res.status(200).json({ transactions: txs });
+    res.status(200).json({ transactions });
   } catch (error) {
-    console.error('Ошибка получения транзакций Osmosis:', error);
-    res.status(500).json({ error: 'Ошибка получения транзакций Osmosis' });
+    res.status(500).json({ error: 'Failed to fetch Osmosis transactions' });
   }
 }
