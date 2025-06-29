@@ -6,8 +6,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const address = 'stars1psaaa8z5twqgs4ahgqdxwl86eydmlwhevugcdx';
-  const query = encodeURIComponent(`events=transfer.recipient='${address}'`);
-  const url = `https://rest.stargaze-apis.com/cosmos/tx/v1beta1/txs?query=${query}&pagination.limit=50&pagination.reverse=true`;
+  const event = encodeURIComponent(`transfer.recipient='${address}'`);
+  const url = `https://rest.stargaze-apis.com/cosmos/tx/v1beta1/txs?events=${event}&pagination.limit=50&pagination.reverse=true`;
 
   try {
     const resp = await fetch(url);
@@ -20,5 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(data);
   } catch (err: any) {
     console.error('Stargaze fetch error:', err);
-    res.status(500).json({
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
 
